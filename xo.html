@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<!--
+  @author: Zhyrgalbek Kalykov
+  Feel free to use)
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: none;
+      color: #ecf0f1;
+      transition: background 1s ease-in-out;
+    }
+
+    #board-container {
+      text-align: center;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-gap: 10px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      font-size: 2em;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid #485460;
+      cursor: pointer;
+      background: linear-gradient(to bottom right, #34495e, #4b6584);
+      color: #ecf0f1;
+      transition: background 0.3s ease-in-out;
+    }
+
+    .cell:hover {
+      background: linear-gradient(to bottom right, #2c3e50, #4b6584);
+    }
+
+    #message {
+      margin-top: 20px;
+      color: #ecf0f1;
+      position: fixed;
+      top: 10%;
+    }
+
+    #replay {
+      margin-top: 20px;
+      padding: 10px;
+      background: linear-gradient(to bottom right, #27ae60, #2ecc71);
+      color: white;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      position: fixed;
+      bottom: 20px;
+    }
+  </style>
+  <title>Tic-Tac-Toe</title>
+</head>
+<body>
+  <audio id="userClickSound" src="bot.mp3"></audio>
+  <audio id="botClickSound" src="1bot.mp3"></audio>
+  <audio id="winSound" src="win.mp3"></audio>
+  <audio id="failSound" src="fail.mp3"></audio>
+
+  <div id="board-container">
+    <div id="board"></div>
+    <div id="message"></div>
+    <button id="replay" onclick="replay()">Start New</button>
+  </div>
+
+  <script>
+
+  const board = document.getElementById('board');
+  const message = document.getElementById('message');
+  let currentPlayer = 'X';
+  let gameOver = false;
+
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      cell.dataset.row = i;
+      cell.dataset.col = j;
+      cell.addEventListener('click', handleCellClick);
+      board.appendChild(cell);
+    }
+  }
+
+  const gradientDirections = [
+    'to bottom right',
+    'to bottom left',
+    'to top left',
+    'to top right'
+  ];
+
+  let currentDirectionIndex = 0;
+
+  function handleCellClick(event) {
+    if (gameOver) return;
+
+    const cell = event.target;
+    const row = cell.dataset.row;
+    const col = cell.dataset.col;
+
+    if (!cell.textContent) {
+      cell.textContent = currentPlayer;
+
+      if (currentPlayer === 'X') {
+        document.getElementById('userClickSound').play();
+      } else {
+        document.getElementById('botClickSound').play();
+      }
+
+      changeBackgroundColor();
+
+      if (checkWinner(row, col)) {
+        document.getElementById('winSound').play();
+        message.textContent = `${currentPlayer} wins!`;
+        gameOver = true;
+      } else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+
+        if (!gameOver && currentPlayer === 'O') {
+          setTimeout(robotMove, 50);
+        }
+      }
+    }
+  }
+
+  function checkWinner(row, col) {
+    return (
+      checkLine(0, 0, 0, 1, 0, 2) || 
+      checkLine(1, 0, 1, 1, 1, 2) ||  
+      checkLine(2, 0, 2, 1, 2, 2) ||  
+      checkLine(0, 0, 1, 0, 2, 0) ||  
+      checkLine(0, 1, 1, 1, 2, 1) ||  
+      checkLine(0, 2, 1, 2, 2, 2) || 
+      checkLine(0, 0, 1, 1, 2, 2) ||  
+      checkLine(0, 2, 1, 1, 2, 0)  
+    );
+
+    function checkLine(r1, c1, r2, c2, r3, c3) {
+      return (
+        board.children[r1 * 3 + c1].textContent === currentPlayer &&
+        board.children[r2 * 3 + c2].textContent === currentPlayer &&
+        board.children[r3 * 3 + c3].textContent === currentPlayer
+      );
+    }
+  }
+
+function simulateClick(cell) {
+  const clickEvent = new Event('click');
+  cell.dispatchEvent(clickEvent);
+}
+function robotMove() {
+  const emptyCells = Array.from(board.children).filter(cell => !cell.textContent);
+  const winningMoveForO = checkForWinningMove('O');
+  if (winningMoveForO) {
+    simulateClick(winningMoveForO);
+    return;
+  }
+
+  const blockingMoveForX = checkForWinningMove('X');
+  if (blockingMoveForX) {
+    simulateClick(blockingMoveForX);
+    return;
+  }
+
+  const centerCell = document.querySelector('[data-row="1"][data-col="1"]');
+  if (centerCell && !centerCell.textContent) {
+    simulateClick(centerCell);
+    return;
+  }
+  else if(centerCell.textContent === 'X'){
+  
+  const cornerCells = [
+    document.querySelector('[data-row="0"][data-col="0"]'),
+    document.querySelector('[data-row="0"][data-col="2"]'),
+    document.querySelector('[data-row="2"][data-col="0"]'),
+    document.querySelector('[data-row="2"][data-col="2"]')
+  ];
+
+  const emptyCorners = cornerCells.filter(cell => !cell.textContent);
+  if (emptyCorners.length > 0) {
+    const randomIndex = Math.floor(Math.random() * emptyCorners.length);
+    simulateClick(emptyCorners[randomIndex]);
+    return;
+  }
+
+  }
+  else{
+     const cornerCells = [
+    document.querySelector('[data-row="0"][data-col="1"]'),
+    document.querySelector('[data-row="1"][data-col="0"]'),
+    document.querySelector('[data-row="1"][data-col="2"]'),
+    document.querySelector('[data-row="2"][data-col="1"]')
+  ];
+
+  const emptyCorners = cornerCells.filter(cell => !cell.textContent);
+  if (emptyCorners.length > 0) {
+    const randomIndex = Math.floor(Math.random() * emptyCorners.length);
+    simulateClick(emptyCorners[randomIndex]);
+    return;
+  }
+
+  }
+
+  if (emptyCells.length > 0) {
+    const randomIndex = Math.floor(Math.random() * emptyCells.length);
+    simulateClick(emptyCells[randomIndex]);
+  }
+}
+
+function checkForWinningMove(player) {
+  for (let i = 0; i < 3; i++) {
+    const rowCells = [
+      board.children[i * 3],
+      board.children[i * 3 + 1],
+      board.children[i * 3 + 2]
+    ];
+    if (countPlayerMoves(rowCells, player) === 2 && countPlayerMoves(rowCells, '') === 1) {
+      return rowCells.find(cell => cell.textContent === '');
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    const colCells = [
+      board.children[i],
+      board.children[i + 3],
+      board.children[i + 6]
+    ];
+    if (countPlayerMoves(colCells, player) === 2 && countPlayerMoves(colCells, '') === 1) {
+      return colCells.find(cell => cell.textContent === '');
+    }
+  }
+  const diagonal1Cells = [board.children[0], board.children[4], board.children[8]];
+  if (countPlayerMoves(diagonal1Cells, player) === 2 && countPlayerMoves(diagonal1Cells, '') === 1) {
+    return diagonal1Cells.find(cell => cell.textContent === '');
+  }
+
+  const diagonal2Cells = [board.children[2], board.children[4], board.children[6]];
+  if (countPlayerMoves(diagonal2Cells, player) === 2 && countPlayerMoves(diagonal2Cells, '') === 1) {
+    return diagonal2Cells.find(cell => cell.textContent === '');
+  }
+
+  return null;
+}
+
+function countPlayerMoves(cells, player) {
+  return cells.filter(cell => cell.textContent === player).length;
+}
+
+
+  function replay() {
+    Array.from(board.children).forEach(cell => {
+      cell.textContent = '';
+    });
+    message.textContent = '';
+    currentPlayer = 'X';
+    gameOver = false;
+
+    changeBackgroundColor();
+  }
+  window.addEventListener('load', changeBackgroundColor);
+  function changeBackgroundColor() {
+    const currentDirection = gradientDirections[currentDirectionIndex];
+    const color1 = getRandomColor();
+    const color2 = getRandomColor();
+    document.body.style.background = color1;
+
+    setTimeout(() => {
+      document.body.style.background = color2; } , 50);
+    
+    currentDirectionIndex = (currentDirectionIndex + 1) % gradientDirections.length;
+
+  }
+
+
+ function getRandomColor() {
+    const characters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 8; i++) {
+        color += characters[Math.floor(Math.random() * characters.length)];
+    }
+    return color;
+}
+
+</script>
+
+</body>
+</html>
